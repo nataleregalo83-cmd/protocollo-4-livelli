@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Protocollo dei 4 Livelli</title>
+  <style>
+    :root{
+      --bg:#0a0a0a;
+      --card:#121212;
+      --text:#f2f2f2;
+      --muted:#b7b7b7;
+      --line:#232323;
+      --green:#2cff84;
+      --yellow:#ffd54a;
+      --red:#ff4a4a;
+      --black:#ffffff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 50% 0%, #141414, var(--bg));
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .wrap{ width:min(920px, 100%); }
+    .title{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      margin-bottom:12px;
+    }
+    .title h1{ font-size:20px; margin:0; letter-spacing:.5px; font-weight:900; }
+    .badge{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      user-select:none;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:18px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.55);
+      overflow:hidden;
+      position:relative;
+    }
+    .card::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background: radial-gradient(800px 300px at 50% -50px, rgba(255,255,255,.08), transparent 60%);
+      pointer-events:none;
+    }
+    .row{
+      display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      margin-bottom:14px; position:relative; z-index:1;
+    }
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    button{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:12px;
+      font-size:14px;
+      font-weight:800;
+      cursor:pointer;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      user-select:none;
+    }
+    button:hover{ background: rgba(255,255,255,.09); }
+    button:active{ transform: scale(.98); }
+    button.primary{ background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.20); }
+    button.danger{ background: rgba(255,74,74,.12); border-color: rgba(255,74,74,.22); }
+    button[disabled]{ opacity:.55; cursor:not-allowed; transform:none !important; }
+
+    .divider{ height:1px; background:var(--line); margin:14px 0; position:relative; z-index:1; }
+
+    .grid{
+      position:relative; z-index:1;
+      display:grid; gap:12px;
+    }
+    .big{ font-size:14px; color:var(--muted); line-height:1.5; margin:0; }
+    .panel{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background: rgba(0,0,0,.22);
+      padding:14px;
+      display:grid;
+      gap:10px;
+    }
+    .panelTitle{
+      font-weight:900; letter-spacing:.4px;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+    }
+    .panelTitle small{ color:var(--muted); font-weight:700; }
+    .players{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+    }
+    .players input{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      outline:none;
+      background:#0f0f0f;
+      color:var(--text);
+      font-size:14px;
+    }
+    @media (max-width:720px){
+      .players{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width:480px){
+      .players{ grid-template-columns: 1fr; }
+    }
+
+    .result{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background: rgba(0,0,0,.25);
+      padding:16px;
+      display:grid;
+      gap:12px;
+    }
+    .levelTag{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:999px;
+      font-weight:900;
+      letter-spacing:.6px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      width:fit-content;
+    }
+    .levelDot{
+      width:10px;height:10px;border-radius:999px;
+      background: var(--muted);
+      box-shadow: 0 0 18px rgba(255,255,255,.12);
+    }
+    .challenge{
+      font-size:22px;
+      font-weight:950;
+      line-height:1.2;
+      margin:0;
+    }
+    .hint{
+      margin:0;
+      color:var(--muted);
+      line-height:1.45;
+      font-size:13px;
+    }
+    .footer{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+    }
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:#121212;
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:13px;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s ease, transform .2s ease;
+      box-shadow: 0 20px 60px rgba(0,0,0,.55);
+    }
+    .toast.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(-6px);
+    }
+    .rules{
+      margin:0;
+      padding-left:18px;
+      color:var(--muted);
+      line-height:1.5;
+      font-size:13px;
+    }
+    code.inline{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      padding:2px 6px;
+      border-radius:8px;
+      font-size:12px;
+      color:var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">
+      <h1>🎴 PROTOCOLLO DEI 4 LIVELLI</h1>
+      <div class="badge" title="Funziona da link NFC su qualsiasi telefono">
+        <span>📱 NFC-ready</span>
+        <span>•</span>
+        <span id="stats">sfide</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="controls">
+          <button id="drawBtn" class="primary">ESTRAI</button>
+          <button id="rerollBtn" disabled>RIPETI</button>
+          <button id="copyBtn" disabled>COPIA</button>
+        </div>
+        <div class="controls">
+          <button id="saveBtn">SALVA NOMI</button>
+          <button id="clearBtn">SVUOTA</button>
+          <button id="resetBtn" class="danger" title="Resetta tutto">RESET</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div id="screen" class="grid">
+        <p class="big">
+          Inserisci i nomi (max 6), salva, poi premi <strong>ESTRAI</strong>.
+          Le sfide usano <code class="inline">{A}</code>, <code class="inline">{B}</code>, <code class="inline">{C}</code> per coinvolgere i giocatori.
+        </p>
+
+        <div class="panel">
+          <div class="panelTitle">
+            <span>👥 Giocatori (2–6 consigliati)</span>
+            <small>vuoti = ignorati</small>
+          </div>
+          <div class="players">
+            <input id="p1" placeholder="Giocatore 1" autocomplete="off">
+            <input id="p2" placeholder="Giocatore 2" autocomplete="off">
+            <input id="p3" placeholder="Giocatore 3" autocomplete="off">
+            <input id="p4" placeholder="Giocatore 4" autocomplete="off">
+            <input id="p5" placeholder="Giocatore 5" autocomplete="off">
+            <input id="p6" placeholder="Giocatore 6" autocomplete="off">
+          </div>
+          <ul class="rules">
+            <li>Puoi rifiutare una sfida. Se rifiuti: il gruppo sceglie <strong>una penitenza extra</strong> oppure ti fa <strong>ripetere</strong>.</li>
+            <li>Niente roba pericolosa/illegale: si gioca per ridere, non per distruggere vite.</li>
+            <li>Livello ⚫ NERO = gruppo. Se siete in pochi, fatelo comunque.</li>
+          </ul>
+        </div>
+
+        <div class="result" id="resultBox" style="display:none"></div>
+      </div>
+
+      <p class="footer">
+        Se vuoi più “stronzaggine”: alza il caos sociale (giallo/rosso/nero). Se siete in 2, evita troppe sfide “di gruppo”.
+      </p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Copiato ✅</div>
+
+  <script>
+    // =========================
+    // SFIDE (più stronze ma safe)
+    // Placeholder: {A} (target), {B}, {C} altri giocatori
+    // =========================
+  const CHALLENGES = {
+  green: [
+    "{A} parla al rallentatore per 90 secondi.",
+    "{A} fa 20 squat senza smettere di sorridere.",
+    "{A} fa il presentatore TV e introduce {B} come ‘ospite speciale’ (20 sec).",
+    "{A} imita {B} per 15 secondi (senza cattiveria pesante).",
+    "{A} tiene una posa ridicola mentre {B} lo fissa disprezzandolo per 20 secondi.",
+    "{A} deve dire ‘Sì chef’ a ogni frase di {B} per 5 minutoi.",
+    "{A} imita un ornitorinco.",
+    "{A} parla solo sussurrando finché {B} non dice ‘ok basta’.",
+    "{A} descrive la stanza come se fosse un documentario (20 sec).",
+    "{A} fa un applauso per se stesso e si inchina.",
+    "{A} siediti sul pavimento finchè gli altri giocatori non dicono \"chi?\".",
+    "{A} cammina al rallentatore per 10 passi come un boss finale.",
+    "{A} fa 10 flessioni finte ma super teatrali.",
+    "{A} dice 3 complimenti a {B}… ma tutti strani.",
+    "{A} deve parlare con accento inventato per 5 minuti.",
+    "{A} fa 30 sec di ‘statua’: zero espressioni.",
+    "{A} canta una parola sola scelta da {B} (con sentimento).",
+    "{A} presenta se stesso come ‘leggenda locale’ (15 sec).",
+    "{A} fa un tutorial: come bere acqua ‘da professionista’ (10 sec).",
+    "{A} imita un animale scelto dal gruppo (10 sec).",
+    "{A} guarda fisso {B} per 1 min. {B} non deve ridere o si invertono i ruoli",
+    "{A} Fai finta di star cenando per 3 minuti.",
+    "{A} lingua fuori per 1 minuto.",
+    "{A} risponde solo \"culo\" per 60 sec.",
+    "{A} recita la caccia al ginghiale, lui è il cinghiale.",
+    "{A} fa il telecronista di {B} mentre beve un bicchiere d'acqua.",
+    "{A} fa un sorriso inquietante per 15 sec.",
+    "{A} deve usare solo gesti per 30 sec.",
+    "{A} saluta tutti come se partisse per la guerra.",
+    "{A} dice: ‘Ok… ripartiamo’ e batte le mani 3 volte."
+  ],
+  yellow: [
+    "{A} manda un messaggio su whastapp a qualcuno a caso deciso da {B} con scritto \"è incredibile!\" .",
+    "{A} manda un messaggio in una chat di gruppo:con scritto \"aspira pupazzi 14\" ’.",
+    "{A} imita un T rex senza gambe.",
+    "{A} legge ad alta voce l’ultimo messaggio inviato oggi.",
+    "{A} per 1 minuto cerca di convincere il gruppo che i puffi conquisteranno il mondo.",
+    "{A} fa una dichiarazione teatrale d’amore a un oggetto scelto da {B}.",
+    "{A} parla solo in terza persona per 5 minuti.",
+    "{A} fai una foto ad un oggetto scelto da {B} e fai una storia IG.",
+    "{A} racconta una figura di merda vera in 30 secondi netti.",
+    "{A} fa un brindisi sexy dedicato a {B}.",
+    "{A} mostra l’ultima foto della galleria.",
+    "{A} per 3 minuti può rispondere solo con domande.",
+    "{A} balla 20 sec senza musica. {B} fa il DJ con la bocca.",
+    "{A} accetta un soprannome imposto dal gruppo per 20 min.",
+    "{A} deve chiedere scusa a {B} perche gli ruba le ciocofrocchiole.",
+    "{A} fa ‘intervista imbarazzante’ a {B}: 3 domande. {B} risponde serio.",
+    "{A} resta immobile ORA per 30 secondi o ripeti.",
+    "{A} esclama \"chi è che ha rubato la mia mutanda preferita?\" .",
+    "{A} spiega perché è la persona più sottovalutata nella stanza (20 sec).",
+    "{A} balla sex bomb .",
+    "{A} lascia scegliere a {B} un animale. IMITALO mentre gioca.",
+    "{A} per 10 minuti deve dire ‘Capo’ a {B} prima di parlare.",
+    "{A} improvvisa un discorso motivazionale su ‘lavare i piatti’ (20 sec).",
+    "{A} finge di essere ubriaco per 30 sec senza esagerare.",
+    "{A} fa una recensione di se stesso come su Amazon (30 sec).",
+    "{A} legge la prima nota non privata che trova sul telefono (se ok).",
+    "{A} deve rispondere sinceramente a UNA domanda di {B}.",
+    "{A} fa un selfie di gruppo bruttissimo (tutti dentro).",
+    "{A} fatti fare i baffi con una penna.",
+    "{A} per 2 minuti parla come fosse Attila."
+  ],
+  red: [
+    "{A} fatti uno shot.",
+    "{A} pubblica una story SOLO TESTO con frase scelta da {B} per 10 minuti (poi può toglierla).",
+    "{A} deve chiamare {B} ‘Maestro’ per 15 minuti senza ridere.",
+    "{A} descrivi il tuo culo nel dettaglio.",
+    "{A} canta il ritornello scelto da {B} guardando negli occhi {C} (15 sec).",
+    "{A} balla 30 sec come una scimmia.",
+    "{A} deve chiamare una ersona scelta da {B} e dire \"il bagno è libero\" poi staccare ",
+    "{A} fa una dichiarazione d’amore falsa a {B}.",
+    "{A} vai a fare la pipi, se non ti scappa vai comunque’ (20 sec).",
+    "{A} fatti scrivere in fronte \"polpetta\" ",
+    "{A} bacia il gomito di {B}.",
+    "{A} canta una canzone con la faccia in una pentola.",
+    "{A} Chiudi gli occhi mentre il gruppo ti mette qualcosa di commestibile e non tossico in bocca. Dovrai mangiarlo.",
+    "{A} Mettiti tutti i vestiti al contrario..",
+    "{A} Scegli qualcuno a cui far disegnare un tatuaggio sul tuo sedere.",
+    "{A} Fai il cane e recupera tre oggetti.",
+    "{A} chiedi ad una persona a caso al di fuori dei giocatori dov' è il bagno",
+    "{A} Metti un cubetto di ghiaccio nei pantaloni e lascialo lì finché non si scioglie..",
+    "{A} deve scegliere: verità scomoda o penitenza extra decisa dal gruppo.",
+    "{A} Fai un selfie con uno sconosciuto.",
+    "{A} Bevi due bicchieri di fila.",
+    "{A} Canta una canzone con dell'acqua in bocca.",
+    "{A} Fai finta di avere un orgasmo mentre guardi negli occhi la persona alla tua sinistra..",
+    "{A} togliti calze e scarpe e poggia i piedi sul tavolo per 5 minuti .",
+    "{A} ogni 5 minuti {B} ti guarda ed esclama \"coglione\".",
+    "{A} fatti bendare e cammina fino al bagno piu vicino e siediti sulla tazza .",
+    "{A} mangia un cucchiaino di sale.",
+    "{A} imita una scena: il pollo scappa la scimmia lo insegue, lo prende e gli tira il collo.",
+    "{A} non puoi dire si o no per 5 minuti se lo fai è il tuo turno di nuovo .",
+    "{A} dopo ogni tua frase esclama 2sono un eroe2 se non lo fai ripeti."
+  ],
+  black: [
+    "TUTTI: foto di gruppo ora! e fate una storia.",
+    "TUTTI: scambio posti e soprannomi per 15 minuti.",
+    "TUTTI: chi ride per primo perde e prende uno schiaffo dal gruppo.",
+    "TUTTI: il gruppo impone una regola per 10 minuti (vale per tutti).",
+    "TUTTI: voto segreto. Il più votato fa una 3 sfide consecutive extra.",
+    "TUTTI: tutti iniziano ad insultare {A} .",
+    "TUTTI: 30 sec di silenzio totale. Chi parla prende una sfida.",
+    "TUTTI: ognuno sceglie un animale: parlate imitandolo per le prossime 3 sfide.",
+    "TUTTI: scegliete una ‘vittima’ ({A}). Tutti la applaudono come fosse una star per 15 sec.",
+    "TUTTI: tutti seduti al contrario.",
+    "TUTTI: cantate tutti usando solo la lettera A e ballate! .",
+    "TUTTI: per 10 minuti tutti devono parlare lentissimi.",
+    "TUTTI: siete pezzi di un trattore incastratevi e costruitelo.",
+    "TUTTI: andate da una persona a caso e ringraziatelo.",
+    "TUTTI: tenetevi la mano a formare un cerchio, si gioca con il naso per 2 sfide.",
+    "TUTTI: ognuno scambia la sua foto profilo di whatsapp con la persona alla sua destra fino alla fine del gioco .",
+    "TUTTI: tutti bendati scambiatevi di posto",
+    "TUTTI: aprite la rubrica chiamate l'ultima persona che avete chiamato (tutti) e in coro dite: nella carbonara non ci va la panna",
+    "TUTTI: dividetevi in squadre e insultatevi come se foste al mercato del pesce.",
+    "TUTTI: tutti bevono",
+    "TUTTI: chi ride per primo nei prossimi 30 sec prende una sfida.",
+    "TUTTI: scegliete una parola proibita. Chi la dice prende una sfida.",
+    "TUTTI: tutti immobili il primo che si muove prende una sfida.",
+    "TUTTI: scegliete un capo ({A}). Tutti devono chiedergli permesso per muoversi 5 min.",
+    "TUTTI: ognuno fa una promessa inutile e pubblica che inizia con: da domani...",
+    "TUTTI: immergete il naso in un bicchiere dacqua e cantate alba chiara",
+    "TUTTI: salutatevi abbracciandovi come se non vi vedeste da anni",
+    "TUTTI: siete in guerra, nascondetevi e lanciatevi messaggi incodice per 3 minuti",
+    "TUTTI: sfida di rutti il piu brutto prende una sfida",
+    "TUTTI: deglutite con la bocca aperta e lingua fuori."
+  ]
+};
+
+    const LEVELS = [
+      { key:"green", label:"🟢 VERDE", color:"var(--green)" },
+      { key:"yellow", label:"🟡 GIALLO", color:"var(--yellow)" },
+      { key:"red", label:"🔴 ROSSO", color:"var(--red)" },
+      { key:"black", label:"⚫ NERO", color:"var(--black)" }
+    ];
+
+    const $ = (id)=>document.getElementById(id);
+    const drawBtn = $("drawBtn");
+    const rerollBtn = $("rerollBtn");
+    const copyBtn = $("copyBtn");
+    const resetBtn = $("resetBtn");
+    const saveBtn = $("saveBtn");
+    const clearBtn = $("clearBtn");
+    const resultBox = $("resultBox");
+    const toast = $("toast");
+
+    const inputs = ["p1","p2","p3","p4","p5","p6"].map($);
+
+    let lastResultText = "";
+    let players = [];
+
+    function randInt(max){ return Math.floor(Math.random() * max); }
+    function pick(arr){ return arr[randInt(arr.length)]; }
+
+    function escapeHtml(str){
+      return str
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function showToast(text){
+      toast.textContent = text;
+      toast.classList.add("show");
+      setTimeout(()=>toast.classList.remove("show"), 1200);
+    }
+
+    function getPlayersFromInputs(){
+      const vals = inputs.map(i => (i.value || "").trim()).filter(Boolean);
+      // dedup case-insensitive
+      const seen = new Set();
+      const unique = [];
+      for(const v of vals){
+        const k = v.toLowerCase();
+        if(!seen.has(k)){
+          seen.add(k);
+          unique.push(v);
+        }
+      }
+      return unique.slice(0,6);
+    }
+
+    function savePlayers(){
+      players = getPlayersFromInputs();
+      localStorage.setItem("p4l_players", JSON.stringify(players));
+      showToast(players.length ? `Salvati ${players.length} giocatori ✅` : "Nessun nome salvato");
+      updateButtons();
+    }
+
+    function loadPlayers(){
+      try{
+        const raw = localStorage.getItem("p4l_players");
+        if(!raw) return;
+        const arr = JSON.parse(raw);
+        if(Array.isArray(arr)){
+          players = arr.slice(0,6);
+          inputs.forEach((inp, idx)=> inp.value = players[idx] || "");
+        }
+      }catch(e){}
+      updateButtons();
+    }
+
+    function clearPlayers(){
+      inputs.forEach(i=> i.value = "");
+      players = [];
+      localStorage.removeItem("p4l_players");
+      showToast("Nomi svuotati");
+      updateButtons();
+    }
+
+    function updateButtons(){
+      const count = getPlayersFromInputs().length;
+      // puoi giocare anche con 1 nome, ma consigliamo 2+
+      const ok = count >= 1;
+      drawBtn.disabled = !ok;
+      rerollBtn.disabled = true;
+      copyBtn.disabled = true;
+      resultBox.style.display = "none";
+    }
+
+    function sampleDistinct(n){
+      // prende n giocatori distinti (se possibile)
+      const pool = players.length ? [...players] : getPlayersFromInputs();
+      const out = [];
+      const temp = [...pool];
+      while(out.length < n && temp.length){
+        out.push(temp.splice(randInt(temp.length), 1)[0]);
+      }
+      // se non bastano, riusa (solo per non crashare)
+      while(out.length < n){
+        out.push(pool.length ? pool[randInt(pool.length)] : `Giocatore ${out.length+1}`);
+      }
+      return out;
+    }
+
+    function formatChallenge(template){
+      // Assicura players aggiornati
+      players = getPlayersFromInputs();
+      const [A,B,C] = sampleDistinct(3);
+
+      const any = players.length ? players[randInt(players.length)] : A;
+
+      return template
+        .replaceAll("{A}", A)
+        .replaceAll("{B}", B)
+        .replaceAll("{C}", C)
+        .replaceAll("{ANY}", any);
+    }
+
+    function draw(){
+      players = getPlayersFromInputs();
+      if(players.length < 1){
+        showToast("Inserisci almeno un nome");
+        return;
+      }
+
+      const lvl = LEVELS[randInt(LEVELS.length)];
+      const templ = pick(CHALLENGES[lvl.key]);
+      const challenge = formatChallenge(templ);
+
+      lastResultText = `${lvl.label}\n${challenge}`;
+
+      resultBox.innerHTML = `
+        <div class="levelTag">
+          <span class="levelDot" style="background:${lvl.color}; box-shadow: 0 0 22px ${lvl.color};"></span>
+          <span>${lvl.label}</span>
+        </div>
+        <p class="challenge">${escapeHtml(challenge)}</p>
+        <p class="hint">
+          Se rifiuti: il gruppo decide una penitenza extra o ti fa ripetere.
+          Niente cose pericolose/illegali. Roast sì, danni no.
+        </p>
+      `;
+      resultBox.style.display = "grid";
+
+      rerollBtn.disabled = false;
+      copyBtn.disabled = false;
+    }
+
+    async function copyResult(){
+      if(!lastResultText) return;
+      try{
+        await navigator.clipboard.writeText(lastResultText);
+        showToast("Copiato ✅");
+      }catch(e){
+        showToast("Copia non disponibile");
+      }
+    }
+
+    function resetAll(){
+      // non cancello i nomi per forza: resetta solo output e bottoni
+      lastResultText = "";
+      rerollBtn.disabled = true;
+      copyBtn.disabled = true;
+      resultBox.style.display = "none";
+      showToast("Reset fatto");
+    }
+
+    // Eventi
+    drawBtn.addEventListener("click", draw);
+    rerollBtn.addEventListener("click", draw);
+    copyBtn.addEventListener("click", copyResult);
+    resetBtn.addEventListener("click", resetAll);
+    saveBtn.addEventListener("click", savePlayers);
+    clearBtn.addEventListener("click", clearPlayers);
+
+    inputs.forEach(inp=>{
+      inp.addEventListener("input", ()=> {
+        // abilita/disabilita draw live
+        const count = getPlayersFromInputs().length;
+        drawBtn.disabled = count < 1;
+      });
+    });
+
+    // Stats
+    (function(){
+      const total = Object.values(CHALLENGES).reduce((acc, arr)=>acc+arr.length, 0);
+      $("stats").textContent = `${total} sfide`;
+    })();
+
+    // Init
+    loadPlayers();
+    updateButtons();
+  </script>
+</body>
+</html>
